@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>블루 익스플로러: 장소 검색 서비스</title>
+    <title>스마트 플레이스 내비게이터</title>
     <style>
         /* 기본 설정 및 미니멀한 서체 적용 */
         body, html {
@@ -23,9 +23,9 @@
             height: 100vh;
         }
 
-        /* 왼쪽 사이드바 (청량한 화이트&블루 대시보드 스타일) */
+        /* 왼쪽 사이드바 (스마트 필터 대시보드 스타일) */
         #sidebar {
-            width: 360px;
+            width: 380px;
             height: 100%;
             padding: 24px 20px;
             box-sizing: border-box;
@@ -37,7 +37,7 @@
             z-index: 10;
         }
 
-        /* 깔끔한 서비스 메인 타이틀 */
+        /* 서비스 메인 타이틀 */
         .service_title {
             font-size: 16px;
             font-weight: 700;
@@ -48,105 +48,100 @@
             gap: 8px;
         }
         
-        /* 타이틀 옆의 청량한 블루 인디케이터 */
         .service_title::before {
             content: '';
             display: inline-block;
             width: 8px;
             height: 8px;
-            background-color: #2563eb; /* 신뢰감을 주는 선명한 블루 */
+            background-color: #2563eb; /* 청량한 메인 블루 */
             border-radius: 50%;
         }
 
-        /* 검색창 영역 */
-        .search_box {
-            position: relative;
+        /* 통합 필터 패널 스타일 */
+        .filter_panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
             margin-bottom: 16px;
         }
 
-        #keyword {
+        .filter_group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter_group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        /* 공통 입력창 및 선택창 디자인 */
+        .filter_group input, .filter_group select {
             width: 100%;
-            padding: 12px 16px;
+            padding: 10px 14px;
             box-sizing: border-box;
             background-color: #f1f5f9;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
             color: #0f172a;
-            font-size: 14px;
+            font-size: 13px;
             transition: all 0.2s ease-in-out;
         }
 
-        /* 포커스 시 청량한 블루 외곽선 효과 */
-        #keyword:focus {
+        .filter_group input:focus, .filter_group select:focus {
             outline: none;
             border-color: #2563eb;
             background-color: #ffffff;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
-        /* 검색 내부 버튼 */
-        .search_box button {
-            position: absolute;
-            right: 6px;
-            top: 6px;
-            padding: 6px 14px;
+        /* 메인 검색 실행 버튼 */
+        .search_btn {
+            width: 100%;
+            padding: 12px;
             background-color: #2563eb;
             color: #ffffff;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 13px;
+            font-size: 14px;
             transition: background-color 0.2s;
+            margin-top: 4px;
         }
 
-        .search_box button:hover {
+        .search_btn:hover {
             background-color: #1d4ed8;
         }
 
-        /* 가로 스크롤 방식의 미니멀 탭 메뉴 */
-        .tabs {
+        /* 구분을 위한 격리선 */
+        .divider {
+            border: 0;
+            height: 1px;
+            background: #e2e8f0;
+            margin: 16px 0;
+        }
+
+        /* 좁히기 필터 하이라이팅 영역 */
+        .refine_group {
+            background-color: #eff6ff;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px dashed #bfdbfe;
+        }
+
+        .refine_group label {
+            color: #1e40af;
             display: flex;
-            gap: 6px;
-            margin-bottom: 20px;
-            overflow-x: auto;
-            padding-bottom: 6px;
+            align-items: center;
+            gap: 4px;
         }
 
-        /* 가로 스크롤바 세련되게 정돈 */
-        .tabs::-webkit-scrollbar {
-            height: 4px;
-        }
-        .tabs::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 2px;
-        }
-
-        /* 트렌디한 칩(Chip) 스타일 버튼 */
-        .tab_btn {
-            padding: 8px 14px;
-            background-color: #f8fafc;
-            color: #64748b;
-            border: 1px solid #e2e8f0;
-            border-radius: 20px;
-            font-size: 13px;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.2s;
-        }
-
-        .tab_btn:hover {
-            color: #0f172a;
-            border-color: #cbd5e1;
-            background-color: #f1f5f9;
-        }
-
-        /* 선택된 탭 스타일 (청량한 블루 하이라이트) */
-        .tab_btn.active {
-            color: #ffffff;
-            background-color: #2563eb;
-            border-color: #2563eb;
-            font-weight: 600;
+        .refine_group input {
+            background-color: #ffffff;
+            border-color: #bfdbfe;
         }
 
         /* 결과 데이터 리스트 영역 */
@@ -156,9 +151,9 @@
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
+            margin-top: 10px;
         }
 
-        /* 리스트 스크롤바 정돈 */
         #resultList::-webkit-scrollbar {
             width: 4px;
         }
@@ -167,16 +162,16 @@
             border-radius: 2px;
         }
 
-        /* 개별 장소 리스트 디자인 */
+        /* 개별 장소 아이템 디자인 */
         .place_item {
-            padding: 16px;
+            padding: 14px 16px;
             border-bottom: 1px solid #f1f5f9;
             cursor: pointer;
             transition: background-color 0.2s;
         }
 
         .place_item:hover {
-            background-color: #eff6ff; /* 마우스 올렸을 때 연한 블루 */
+            background-color: #eff6ff;
         }
 
         .place_title {
@@ -198,7 +193,7 @@
             height: 100%;
         }
 
-        /* 화이트&블루 테마 커스텀 인포윈도우 */
+        /* 화이트&블루 테마 인포윈도우 */
         .custom_info_window {
             padding: 6px 12px;
             background-color: #ffffff;
@@ -216,21 +211,40 @@
 
 <div id="container">
     <div id="sidebar">
-        <div class="service_title">블루 익스플로러</div>
+        <div class="service_title">스마트 플레이스 파인더</div>
 
-        <div class="search_box">
-            <input type="text" id="keyword" placeholder="장소, 주소, 키워드 검색" onkeypress="if(event.keyCode==13) searchPlaces();">
-            <button onclick="searchPlaces()">검색</button>
+        <div class="filter_panel">
+            <div class="filter_group">
+                <label>지역 선택 및 입력</label>
+                <input type="text" id="regionInput" placeholder="예: 강남역, 홍대, 고양시 (비우면 현재위치)">
+            </div>
+            
+            <div class="filter_group">
+                <label>업종 카테고리</label>
+                <select id="categorySelect">
+                    <option value="">전체 업종 선택</option>
+                    <option value="한식">한식집</option>
+                    <option value="중식">중식집</option>
+                    <option value="일식">일식집</option>
+                    <option value="양식">양식집</option>
+                    <option value="빵집">빵집</option>
+                    <option value="카페">카페</option>
+                </select>
+            </div>
+
+            <div class="filter_group">
+                <label>세부 검색어 입력</label>
+                <input type="text" id="keywordInput" placeholder="상호명 또는 특정 검색어 직접 입력" onkeypress="if(event.keyCode==13) executeSearch();">
+            </div>
+
+            <button class="search_btn" onclick="executeSearch()">조건으로 검색 실행</button>
         </div>
-        
-        <div class="tabs">
-            <button class="tab_btn" onclick="searchByCategory('한식')">한식</button>
-            <button class="tab_btn" onclick="searchByCategory('일식')">일식</button>
-            <button class="tab_btn" onclick="searchByCategory('중식')">중식</button>
-            <button class="tab_btn" onclick="searchByCategory('양식')">양식</button>
-            <button class="tab_btn" onclick="searchByCategory('빵집')">빵집</button>
-            <button class="tab_btn" onclick="searchByCategory('카페')">카페</button>
-            <button class="tab_btn" onclick="searchByCategory('음악가게')">음악가게</button>
+
+        <hr class="divider">
+
+        <div class="filter_group refine_group">
+            <label>🔍 결과 내 전문 품목 필터 (범위 좁히기)</label>
+            <input type="text" id="specialtyInput" placeholder="예: 돈까스, 짬뽕, 크로플, 베이글" oninput="filterBySpecialty()">
         </div>
 
         <div id="resultList"></div>
@@ -241,14 +255,14 @@
 <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=e78e66ec37d3a3a35bb423e78130d886&libraries=services"></script>
 
 <script>
-    let map;        // 지도 객체
-    let ps;         // 장소 검색 서비스 객체
-    let markers = [];   // 마커 배열
-    let infowindow; // 인포윈도우 객체
+    let map;            // 지도 객체
+    let ps;             // 장소 검색 서비스 객체
+    let markers = [];       // 마커 배열
+    let infowindow;     // 인포윈도우 객체
+    let fetchedPlaces = []; // 1차 검색으로 서버에서 가져온 원본 장소 데이터 배열
 
     kakao.maps.load(function() {
         const container = document.getElementById('map');
-        
         const options = {
             center: new kakao.maps.LatLng(37.566826, 126.9786567),
             level: 4
@@ -258,7 +272,7 @@
         ps = new kakao.maps.services.Places();
         infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
 
-        // 사용자의 현재 위치 탐색 후 지도 중심 이동
+        // 브라우저 위치 기반 현재 위치 트래킹
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
                 const lat = position.coords.latitude;
@@ -267,66 +281,80 @@
                 
                 map.setCenter(locPosition);
                 
-                // 현재 위치 기준 마커 생성
                 new kakao.maps.Marker({
                     map: map,
                     position: locPosition
                 });
             }, function(error) {
-                console.error("위치 동기화 실패", error);
+                console.error("위치 관제 로드 실패", error);
             });
         }
     });
 
-    // 카테고리 선택 검색 함수
-    function searchByCategory(category) {
-        const buttons = document.querySelectorAll('.tab_btn');
-        buttons.forEach(btn => {
-            if (btn.textContent === category) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
+    // 1차 다중 조건 결합 검색 엔진 실행
+    function executeSearch() {
+        const region = document.getElementById('regionInput').value.trim();
+        const category = document.getElementById('categorySelect').value;
+        const keyword = document.getElementById('keywordInput').value.trim();
 
-        document.getElementById('keyword').value = '';
-        const currentCenter = map.getCenter();
+        // 범위 좁히기 필터창 초기화
+        document.getElementById('specialtyInput').value = '';
 
-        // 현재 지도 중심 기준 2km 반경 탐색
-        ps.keywordSearch(category, placesSearchCB, {
-            location: currentCenter,
-            radius: 2000,
-            sort: kakao.maps.services.SortBy.DISTANCE
-        });
-    }
-
-    // 키워드 직접 입력 검색 함수
-    function searchPlaces() {
-        const keyword = document.getElementById('keyword').value;
-
-        if (!keyword.replace(/^\s+|\s+$/g, '')) {
-            alert('검색어를 입력해 주세요.');
+        // 최소 하나의 조건 조합 유효성 검사
+        if (!region && !category && !keyword) {
+            alert('최소 하나의 검색 조건을 입력하거나 선택해 주세요.');
             return;
         }
 
-        const buttons = document.querySelectorAll('.tab_btn');
-        buttons.forEach(btn => btn.classList.remove('active'));
+        // 입력된 필터 요소들을 공백 기준으로 조합하여 강력한 쿼리 생성
+        const combinedQuery = `${region} ${category} ${keyword}`.trim().replace(/\s+/g, ' ');
 
-        ps.keywordSearch(keyword, placesSearchCB);
+        const searchOptions = {};
+        // 지역을 입력하지 않은 경우 현재 지도 중심 좌표 기준으로 2km 반경 탐색 설정 적용
+        if (!region) {
+            searchOptions.location = map.getCenter();
+            searchOptions.radius = 2000;
+            searchOptions.sort = kakao.maps.services.SortBy.DISTANCE;
+        }
+
+        // 카카오맵 키워드 검색 서비스 호출
+        ps.keywordSearch(combinedQuery, placesSearchCB, searchOptions);
     }
 
-    // 카카오맵 API 응답 처리 콜백
+    // 카카오맵 API 응답 콜백 함수
     function placesSearchCB(data, status, pagination) {
         if (status === kakao.maps.services.Status.OK) {
-            displayPlaces(data);
+            fetchedPlaces = data; // 원본 원격 데이터를 로컬 전역 변수에 안전하게 보관
+            renderPlaces(fetchedPlaces); // 화면 렌더링 파이프라인 가동
         } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
-            alert('주변에 해당 장소가 발견되지 않았습니다.');
+            alert('입력하신 조건과 일치하는 장소를 찾을 수 없습니다.');
         } else if (status === kakao.maps.services.Status.ERROR) {
-            alert('데이터 로드 중 문제가 발생했습니다.');
+            alert('데이터 통신 중 예기치 못한 에러가 발생했습니다.');
         }
     }
 
-    // 기존 마커 초기화
+    // 2차 실시간 내부 메모리 전문 데이터 필터링 엔진 (범위 좁히기)
+    function filterBySpecialty() {
+        const filterValue = document.getElementById('specialtyInput').value.trim().toLowerCase();
+        
+        // 필터 입력값이 비어있다면 원본 데이터 전체 복원
+        if (!filterValue) {
+            renderPlaces(fetchedPlaces);
+            return;
+        }
+
+        // 상호명 및 카카오 기본 세부 카테고리 명칭 데이터에서 키워드 포함 검사 실행
+        const filteredResult = fetchedPlaces.filter(place => {
+            const matchName = place.place_name.toLowerCase().includes(filterValue);
+            const matchCategory = place.category_name.toLowerCase().includes(filterValue);
+            return matchName || matchCategory;
+        });
+
+        // 좁혀진 가공 데이터셋으로만 화면 및 마커 다시 그리기
+        renderPlaces(filteredResult);
+    }
+
+    // 마커 청소 함수
     function removeMarkers() {
         for (let i = 0; i < markers.length; i++) {
             markers[i].setMap(null);
@@ -334,15 +362,18 @@
         markers = [];
     }
 
-    // 지도 위에 마커와 왼쪽 리스트 렌더링
-    function displayPlaces(places) {
+    // 장소 리스트 및 지도 마커 동시 출력 처리 함수
+    function renderPlaces(places) {
         const listEl = document.getElementById('resultList');
         listEl.innerHTML = '';
         removeMarkers();
 
-        const bounds = new kakao.maps.LatLngBounds();
+        if (places.length === 0) {
+            listEl.innerHTML = '<div style="padding:20px; text-align:center; color:#94a3b8; font-size:13px;">필터 조건에 부합하는 타겟이 없습니다.</div>';
+            return;
+        }
 
-        // 직관적인 레드 마커 핀 활용
+        const bounds = new kakao.maps.LatLngBounds();
         const imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png';
         const imageSize = new kakao.maps.Size(31, 35); 
         const markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
@@ -359,12 +390,12 @@
             markers.push(marker);
             bounds.extend(placePosition);
 
-            // 리스트 아이템 엘리먼트 생성
+            // 사이드바 전용 DOM 아이템 생성
             const itemEl = document.createElement('div');
             itemEl.className = 'place_item';
             itemEl.innerHTML = '<div class="place_title">' + places[i].place_name + '</div><div class="place_addr">' + places[i].address_name + '</div>';
             
-            // 이벤트 클로저 처리
+            // 이벤트 클로저 결합
             (function(m, p, pos) {
                 const infoContent = '<div class="custom_info_window">' + p.place_name + '</div>';
                 
