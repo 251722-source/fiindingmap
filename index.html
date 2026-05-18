@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>장소 검색 대시보드</title>
+    <title>블루 익스플로러: 장소 검색 서비스</title>
     <style>
         /* 기본 설정 및 미니멀한 서체 적용 */
         body, html {
@@ -11,8 +11,8 @@
             padding: 0;
             height: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #0f172a;
-            color: #f1f5f9;
+            background-color: #f8fafc;
+            color: #334155;
             -webkit-font-smoothing: antialiased;
         }
 
@@ -23,16 +23,17 @@
             height: 100vh;
         }
 
-        /* 왼쪽 사이드바 (모던 다크 대시보드 스타일) */
+        /* 왼쪽 사이드바 (청량한 화이트&블루 대시보드 스타일) */
         #sidebar {
             width: 360px;
             height: 100%;
             padding: 24px 20px;
             box-sizing: border-box;
-            border-right: 1px solid #1e293b;
+            border-right: 1px solid #e2e8f0;
             display: flex;
             flex-direction: column;
-            background-color: #0f172a; /* 슬레이트 다크 */
+            background-color: #ffffff;
+            box-shadow: 4px 0 24px rgba(148, 163, 184, 0.08);
             z-index: 10;
         }
 
@@ -40,20 +41,20 @@
         .service_title {
             font-size: 16px;
             font-weight: 700;
-            color: #f8fafc;
+            color: #0f172a;
             margin-bottom: 20px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
         
-        /* 타이틀 옆의 깔끔한 인디케이터 */
+        /* 타이틀 옆의 청량한 블루 인디케이터 */
         .service_title::before {
             content: '';
             display: inline-block;
             width: 8px;
             height: 8px;
-            background-color: #38bdf8; /* 트렌디한 스카이 블루 */
+            background-color: #2563eb; /* 신뢰감을 주는 선명한 블루 */
             border-radius: 50%;
         }
 
@@ -67,19 +68,20 @@
             width: 100%;
             padding: 12px 16px;
             box-sizing: border-box;
-            background-color: #1e293b;
-            border: 1px solid #334155;
+            background-color: #f1f5f9;
+            border: 1px solid #e2e8f0;
             border-radius: 8px;
-            color: #fff;
+            color: #0f172a;
             font-size: 14px;
             transition: all 0.2s ease-in-out;
         }
 
-        /* 포커스 시 깔끔한 인디고 블루 외곽선 */
+        /* 포커스 시 청량한 블루 외곽선 효과 */
         #keyword:focus {
             outline: none;
-            border-color: #38bdf8;
-            background-color: #1e293b;
+            border-color: #2563eb;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
         }
 
         /* 검색 내부 버튼 */
@@ -88,8 +90,8 @@
             right: 6px;
             top: 6px;
             padding: 6px 14px;
-            background-color: #38bdf8;
-            color: #0f172a;
+            background-color: #2563eb;
+            color: #ffffff;
             border: none;
             border-radius: 6px;
             cursor: pointer;
@@ -99,7 +101,7 @@
         }
 
         .search_box button:hover {
-            background-color: #7dd3fc;
+            background-color: #1d4ed8;
         }
 
         /* 가로 스크롤 방식의 미니멀 탭 메뉴 */
@@ -108,21 +110,25 @@
             gap: 6px;
             margin-bottom: 20px;
             overflow-x: auto;
-            padding-bottom: 4px;
+            padding-bottom: 6px;
         }
 
-        /* 가로 스크롤바 가리기 */
+        /* 가로 스크롤바 세련되게 정돈 */
         .tabs::-webkit-scrollbar {
-            display: none;
+            height: 4px;
+        }
+        .tabs::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 2px;
         }
 
-        /* 대시보드 전용 칩(Chip) 스타일 버튼 */
+        /* 트렌디한 칩(Chip) 스타일 버튼 */
         .tab_btn {
             padding: 8px 14px;
-            background-color: #1e293b;
-            color: #94a3b8;
-            border: 1px solid #334155;
-            border-radius: 20px; /* 라운드 처리로 트렌디하게 */
+            background-color: #f8fafc;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
             font-size: 13px;
             cursor: pointer;
             white-space: nowrap;
@@ -130,16 +136,16 @@
         }
 
         .tab_btn:hover {
-            color: #fff;
-            border-color: #475569;
-            background-color: #334155;
+            color: #0f172a;
+            border-color: #cbd5e1;
+            background-color: #f1f5f9;
         }
 
-        /* 선택된 탭 스타일 */
+        /* 선택된 탭 스타일 (청량한 블루 하이라이트) */
         .tab_btn.active {
-            color: #fff;
-            background-color: #0284c7;
-            border-color: #0284c7;
+            color: #ffffff;
+            background-color: #2563eb;
+            border-color: #2563eb;
             font-weight: 600;
         }
 
@@ -147,8 +153,8 @@
         #resultList {
             flex: 1;
             overflow-y: auto;
-            background: #0b0f19;
-            border: 1px solid #1e293b;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 8px;
         }
 
@@ -157,24 +163,24 @@
             width: 4px;
         }
         #resultList::-webkit-scrollbar-thumb {
-            background: #334155;
+            background: #e2e8f0;
             border-radius: 2px;
         }
 
         /* 개별 장소 리스트 디자인 */
         .place_item {
             padding: 16px;
-            border-bottom: 1px solid #1e293b;
+            border-bottom: 1px solid #f1f5f9;
             cursor: pointer;
             transition: background-color 0.2s;
         }
 
         .place_item:hover {
-            background-color: #1e293b;
+            background-color: #eff6ff; /* 마우스 올렸을 때 연한 블루 */
         }
 
         .place_title {
-            color: #f8fafc;
+            color: #0f172a;
             font-size: 14px;
             font-weight: 600;
             margin-bottom: 4px;
@@ -182,7 +188,7 @@
 
         .place_addr {
             font-size: 12px;
-            color: #94a3b8;
+            color: #64748b;
             line-height: 1.4;
         }
 
@@ -192,16 +198,16 @@
             height: 100%;
         }
 
-        /* 깔끔한 미니멀 인포윈도우 커스텀 */
+        /* 화이트&블루 테마 커스텀 인포윈도우 */
         .custom_info_window {
             padding: 6px 12px;
-            background-color: #0f172a;
-            color: #ffffff;
-            border: 1px solid #334155;
+            background-color: #ffffff;
+            color: #2563eb;
+            border: 1px solid #2563eb;
             border-radius: 6px;
             font-size: 12px;
-            font-weight: 500;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
             white-space: nowrap;
         }
     </style>
@@ -210,7 +216,7 @@
 
 <div id="container">
     <div id="sidebar">
-        <div class="service_title">장소 검색 서비스</div>
+        <div class="service_title">블루 익스플로러</div>
 
         <div class="search_box">
             <input type="text" id="keyword" placeholder="장소, 주소, 키워드 검색" onkeypress="if(event.keyCode==13) searchPlaces();">
@@ -223,6 +229,8 @@
             <button class="tab_btn" onclick="searchByCategory('중식')">중식</button>
             <button class="tab_btn" onclick="searchByCategory('양식')">양식</button>
             <button class="tab_btn" onclick="searchByCategory('빵집')">빵집</button>
+            <button class="tab_btn" onclick="searchByCategory('카페')">카페</button>
+            <button class="tab_btn" onclick="searchByCategory('음악가게')">음악가게</button>
         </div>
 
         <div id="resultList"></div>
@@ -250,7 +258,7 @@
         ps = new kakao.maps.services.Places();
         infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
 
-        // 내 현재 위치 기준 중심 설정
+        // 사용자의 현재 위치 탐색 후 지도 중심 이동
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
                 const lat = position.coords.latitude;
@@ -259,18 +267,18 @@
                 
                 map.setCenter(locPosition);
                 
-                // 내 현재 위치 마커 생성
+                // 현재 위치 기준 마커 생성
                 new kakao.maps.Marker({
                     map: map,
                     position: locPosition
                 });
             }, function(error) {
-                console.error("위치 정보 호출 실패", error);
+                console.error("위치 동기화 실패", error);
             });
         }
     });
 
-    // 카테고리 선택 검색
+    // 카테고리 선택 검색 함수
     function searchByCategory(category) {
         const buttons = document.querySelectorAll('.tab_btn');
         buttons.forEach(btn => {
@@ -284,6 +292,7 @@
         document.getElementById('keyword').value = '';
         const currentCenter = map.getCenter();
 
+        // 현재 지도 중심 기준 2km 반경 탐색
         ps.keywordSearch(category, placesSearchCB, {
             location: currentCenter,
             radius: 2000,
@@ -291,7 +300,7 @@
         });
     }
 
-    // 일반 텍스트 검색
+    // 키워드 직접 입력 검색 함수
     function searchPlaces() {
         const keyword = document.getElementById('keyword').value;
 
@@ -306,18 +315,18 @@
         ps.keywordSearch(keyword, placesSearchCB);
     }
 
-    // 결과 핸들러 콜백
+    // 카카오맵 API 응답 처리 콜백
     function placesSearchCB(data, status, pagination) {
         if (status === kakao.maps.services.Status.OK) {
             displayPlaces(data);
         } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
-            alert('검색 결과가 없습니다.');
+            alert('주변에 해당 장소가 발견되지 않았습니다.');
         } else if (status === kakao.maps.services.Status.ERROR) {
-            alert('검색 중 오류가 발생했습니다.');
+            alert('데이터 로드 중 문제가 발생했습니다.');
         }
     }
 
-    // 마커 리셋
+    // 기존 마커 초기화
     function removeMarkers() {
         for (let i = 0; i < markers.length; i++) {
             markers[i].setMap(null);
@@ -325,7 +334,7 @@
         markers = [];
     }
 
-    // 리스트 및 마커 렌더링
+    // 지도 위에 마커와 왼쪽 리스트 렌더링
     function displayPlaces(places) {
         const listEl = document.getElementById('resultList');
         listEl.innerHTML = '';
@@ -333,7 +342,7 @@
 
         const bounds = new kakao.maps.LatLngBounds();
 
-        // 세련된 레드 마커 이미지 리소스
+        // 직관적인 레드 마커 핀 활용
         const imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png';
         const imageSize = new kakao.maps.Size(31, 35); 
         const markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
@@ -350,12 +359,12 @@
             markers.push(marker);
             bounds.extend(placePosition);
 
-            // 아이템 엘리먼트 생성
+            // 리스트 아이템 엘리먼트 생성
             const itemEl = document.createElement('div');
             itemEl.className = 'place_item';
             itemEl.innerHTML = '<div class="place_title">' + places[i].place_name + '</div><div class="place_addr">' + places[i].address_name + '</div>';
             
-            // 이벤트 바인딩
+            // 이벤트 클로저 처리
             (function(m, p, pos) {
                 const infoContent = '<div class="custom_info_window">' + p.place_name + '</div>';
                 
