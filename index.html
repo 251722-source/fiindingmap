@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>로지스틱스 & 유통망 스마트 관제 시스템</title>
+    <title>로지스틱스 & 유통 관제망 (탭 분리형)</title>
     <style>
         body, html {
             margin: 0;
@@ -51,6 +51,35 @@
             height: 8px;
             background-color: #2563eb;
             border-radius: 50%;
+        }
+
+        /* 🗂️ 신규 상단 탭 스타일 */
+        .tab_container {
+            display: flex;
+            background-color: #f1f5f9;
+            padding: 4px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .tab_btn {
+            flex: 1;
+            padding: 10px 0;
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            background: none;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .tab_btn.active {
+            background-color: #ffffff;
+            color: #2563eb;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         .filter_panel {
@@ -244,22 +273,19 @@
     <div id="sidebar">
         <div class="service_title">로지스틱스 & 유통 관제망</div>
 
+        <div class="tab_container">
+            <button id="tabLogistics" class="tab_btn active" onclick="switchTab('logistics')">카테고리 1: 물류 인프라</button>
+            <button id="tabRetail" class="tab_btn" onclick="switchTab('retail')">카테고리 2: 소매 유통망</button>
+        </div>
+
         <div class="filter_panel">
             <div class="filter_group">
                 <label>📍 거점 지역 설정</label>
                 <input type="text" id="regionInput" placeholder="예: 고양시, 이천, 상봉역">
             </div>
-
-            <div class="filter_group">
-                <label>🗂️ 대분류 인프라 카테고리</label>
-                <select id="mainCategory" onchange="handleCategoryChange()">
-                    <option value="logistics">카테고리 1: 운송사 B2B 인프라</option>
-                    <option value="retail">카테고리 2: 상업 유통망 (즉시 구매)</option>
-                </select>
-            </div>
             
             <div class="filter_group">
-                <label>🚚 세부 인프라 분류</label>
+                <label id="subCategoryLabel">🚚 세부 인프라 분류</label>
                 <select id="subCategory">
                     <option value="">전체 운송사</option>
                     <option value="쿠팡">쿠팡 물류</option>
@@ -270,10 +296,10 @@
 
             <div class="filter_group">
                 <label>🏭 인프라 세부 검색어 명시</label>
-                <input type="text" id="keywordInput" placeholder="비워두면 대분류 기본 명칭으로 탐색" onkeypress="if(event.keyCode==13) executeSearch();">
+                <input type="text" id="keywordInput" placeholder="비워두면 자동으로 '물류센터' 검색" onkeypress="if(event.keyCode==13) executeSearch();">
             </div>
 
-            <button class="search_btn" onclick="executeSearch()">거점망 1차 검색</button>
+            <button id="searchBtn" class="search_btn" onclick="executeSearch()">물류 거점 1차 검색</button>
         </div>
 
         <div class="traffic_control_panel">
@@ -293,7 +319,7 @@
         </div>
 
         <div id="resultList">
-            <div class="placeholder_text">상단 조건을 입력한 후<br>'거점망 1차 검색' 버튼을 눌러주세요.</div>
+            <div id="placeholderText" class="placeholder_text">상단 조건을 입력한 후<br>'물류 거점 1차 검색' 버튼을 눌러주세요.</div>
         </div>
     </div>
     <div id="map"></div>
@@ -308,16 +334,13 @@
     let infowindow;     
     let fetchedPlaces = []; 
     let currentCenterPos;   
+    let currentActiveTab = 'logistics'; // 현재 활성화된 탭 ('logistics' 혹은 'retail')
 
     function initMap() {
         const container = document.getElementById('map');
         const defaultPos = new kakao.maps.LatLng(37.566826, 126.9786567); 
         
-        const options = {
-            center: defaultPos,
-            level: 7
-        };
-
+        const options = { center: defaultPos, level: 7 };
         map = new kakao.maps.Map(container, options);
         ps = new kakao.maps.services.Places();
         infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
@@ -326,14 +349,12 @@
         map.addOverlayMapTypeId(kakao.maps.MapTypeId.TRAFFIC);
 
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    currentCenterPos = new kakao.maps.LatLng(lat, lon);
-                    map.setCenter(currentCenterPos);
-                }
-            );
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                currentCenterPos = new kakao.maps.LatLng(lat, lon);
+                map.setCenter(currentCenterPos);
+            });
         }
     }
 
@@ -341,28 +362,52 @@
         kakao.maps.load(initMap);
     }
 
-    // 대분류 셀렉트 박스 변경 시 소분류 데이터 동적 교체 로직
-    function handleCategoryChange() {
-        const mainCat = document.getElementById('mainCategory').value;
+    // 🗂️ 탭 스위칭 시 UI 및 옵션을 동적으로 변경하는 함수
+    function switchTab(tabName) {
+        currentActiveTab = tabName;
+        
+        const tabLogistics = document.getElementById('tabLogistics');
+        const tabRetail = document.getElementById('tabRetail');
+        const subCategoryLabel = document.getElementById('subCategoryLabel');
         const subCatSelect = document.getElementById('subCategory');
         const keywordInput = document.getElementById('keywordInput');
-        
-        subCatSelect.innerHTML = ''; // 기존 옵션 초기화
+        const searchBtn = document.getElementById('searchBtn');
+        const placeholderText = document.getElementById('placeholderText');
 
-        if (mainCat === 'logistics') {
-            // 카테고리 1 스크립팅
+        // 결과창 및 마커 초기화
+        document.getElementById('resultList').innerHTML = '';
+        removeMarkers();
+        fetchedPlaces = [];
+        document.getElementById('specialtyInput').value = '';
+
+        subCatSelect.innerHTML = ''; // 서브 옵션 비우기
+
+        if (tabName === 'logistics') {
+            tabLogistics.classList.add('active');
+            tabRetail.classList.remove('active');
+            
+            subCategoryLabel.textContent = "🚚 세부 인프라 분류";
             subCatSelect.options[0] = new Option("전체 운송사", "");
             subCatSelect.options[1] = new Option("쿠팡 물류", "쿠팡");
             subCatSelect.options[2] = new Option("CJ대한통운", "CJ대한통운");
             subCatSelect.options[3] = new Option("한진택배", "한진택배");
+            
             keywordInput.placeholder = "비워두면 자동으로 '물류센터' 검색";
+            searchBtn.textContent = "물류 거점 1차 검색";
+            if(placeholderText) placeholderText.innerHTML = "상단 조건을 입력한 후<br>'물류 거점 1차 검색' 버튼을 눌러주세요.";
         } else {
-            // 카테고리 2 스크립팅 (즉시 구매 유통 인프라)
+            tabLogistics.classList.remove('active');
+            tabRetail.classList.add('active');
+            
+            subCategoryLabel.textContent = "🛒 유통 매장 분류";
             subCatSelect.options[0] = new Option("전체 소매 유통망", "");
             subCatSelect.options[1] = new Option("코스트코", "코스트코");
-            subCatSelect.options[2] = new Option("대형마트 (이마트/롯데마트/홈플러스)", "대형마트");
+            subCatSelect.options[2] = new Option("대형마트 (이마트/롯데마트 등)", "대형마트");
             subCatSelect.options[3] = new Option("소매점 (슈퍼마켓/편의점)", "소매점");
+            
             keywordInput.placeholder = "비워두면 자동으로 '마트' 검색";
+            searchBtn.textContent = "소매 유통망 1차 검색";
+            if(placeholderText) placeholderText.innerHTML = "상단 조건을 입력한 후<br>'소매 유통망 1차 검색' 버튼을 눌러주세요.";
         }
     }
 
@@ -370,18 +415,14 @@
         if (!ps) return;
 
         const region = document.getElementById('regionInput').value.trim();
-        const mainCat = document.getElementById('mainCategory').value;
         const subCatValue = document.getElementById('subCategory').value;
         let keyword = document.getElementById('keywordInput').value.trim();
 
-        // 사용자가 검색어를 명시하지 않았을 때 대분류 기준 기본 디폴트 키워드 매핑
         if (!keyword) {
-            keyword = (mainCat === 'logistics') ? "물류센터" : "마트";
+            keyword = (currentActiveTab === 'logistics') ? "물류센터" : "마트";
         }
 
         document.getElementById('specialtyInput').value = '';
-        
-        // 최종 결합형 고도화 쿼리 생성
         const combinedQuery = `${region} ${subCatValue} ${keyword}`.trim().replace(/\s+/g, ' ');
 
         const searchOptions = {};
@@ -400,7 +441,8 @@
             currentCenterPos = map.getCenter(); 
             renderPlaces(fetchedPlaces); 
         } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
-            document.getElementById('resultList').innerHTML = '<div class="placeholder_text">검색 결과가 없습니다.<br>분류망이나 지역명을 다시 조합해 보세요.</div>';
+            const currentName = (currentActiveTab === 'logistics') ? '물류 인프라' : '유통망 소매점';
+            document.getElementById('resultList').innerHTML = `<div class="placeholder_text">조건에 맞는 ${currentName} 결과가 없습니다.</div>`;
             removeMarkers();
         }
     }
@@ -411,25 +453,20 @@
 
     function filterBySpecialty() {
         const filterValue = document.getElementById('specialtyInput').value.trim().toLowerCase();
-        
         if (!filterValue) {
             renderPlaces(fetchedPlaces);
             return;
         }
-
         const filteredResult = fetchedPlaces.filter(place => {
             const matchName = place.place_name.toLowerCase().includes(filterValue);
             const matchCategory = place.category_name.toLowerCase().includes(filterValue);
             return matchName || matchCategory;
         });
-
         renderPlaces(filteredResult);
     }
 
     function removeMarkers() {
-        for (let i = 0; i < markers.length; i++) {
-            markers[i].setMap(null);
-        }
+        for (let i = 0; i < markers.length; i++) markers[i].setMap(null);
         markers = [];
     }
 
@@ -437,11 +474,8 @@
         const R = 6371; 
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLng = (lng2 - lng1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                  Math.sin(dLng/2) * Math.sin(dLng/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return R * c; 
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng/2) * Math.sin(dLng/2);
+        return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))); 
     }
 
     function renderPlaces(places) {
@@ -453,8 +487,7 @@
 
         const bounds = new kakao.maps.LatLngBounds();
         const imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png';
-        const imageSize = new kakao.maps.Size(31, 35); 
-        const markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
+        const markerImage = new kakao.maps.MarkerImage(imageSrc, new kakao.maps.Size(31, 35));
 
         const trafficCondition = document.getElementById('trafficStatus').value;
         let speed = 60; 
@@ -482,7 +515,7 @@
                     <span class="${badgeClass}">⏱️ 약 ${durationMinutes}분</span>
                 </div>
                 <div class="place_info_meta">
-                    📍 반경: ${distance.toFixed(1)}km | 주소: ${places[i].address_name}
+                    📍 거리: ${distance.toFixed(1)}km | 주소: ${places[i].address_name}
                 </div>
             `;
             
@@ -490,8 +523,8 @@
                 const infoContent = `
                     <div class="custom_info_window">
                         <b>${p.place_name}</b><br>
-                        🏢 유형: ${p.category_name}<br>
-                        ⚙️ 관제 거리: 약 ${dist.toFixed(1)}km | 소요 시간: <b>약 ${time}분</b>
+                        🏢 분류: ${p.category_name}<br>
+                        ⚙️ 반경 거리: 약 ${dist.toFixed(1)}km | 소요: <b>약 ${time}분</b>
                     </div>`;
                 
                 kakao.maps.event.addListener(m, 'click', function() {
