@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>로지스틱스 맵 관제 시스템 (교통정보 포함)</title>
+    <title>로지스틱스 & 유통망 스마트 관제 시스템</title>
     <style>
         body, html {
             margin: 0;
@@ -22,7 +22,7 @@
         }
 
         #sidebar {
-            width: 380px;
+            width: 390px;
             height: 100%;
             padding: 24px 20px;
             box-sizing: border-box;
@@ -136,36 +136,27 @@
             border-color: #bbf7d0;
         }
 
-        /* 🚥 교통정보 토글 버튼 스타일 추가 */
-        .traffic_toggle_panel {
+        .traffic_control_panel {
             margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             background: #f8fafc;
-            padding: 10px 14px;
+            padding: 12px;
             border-radius: 8px;
             border: 1px solid #e2e8f0;
         }
-        .traffic_toggle_panel span {
+        .traffic_control_panel .title {
             font-size: 13px;
             font-weight: 600;
             color: #334155;
+            margin-bottom: 8px;
         }
-        .toggle_btn {
-            padding: 6px 12px;
-            font-size: 12px;
-            font-weight: 600;
+        .status_select {
+            width: 100%;
+            padding: 8px;
             border-radius: 6px;
             border: 1px solid #cbd5e1;
-            background: #fff;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .toggle_btn.active {
-            background: #ef4444;
-            color: #fff;
-            border-color: #ef4444;
+            font-size: 12px;
+            font-weight: 600;
+            background: white;
         }
 
         #resultList {
@@ -201,12 +192,30 @@
             font-size: 14px;
             font-weight: 600;
             margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .place_addr {
+        .eta_badge {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            background-color: #e0f2fe;
+            color: #0369a1;
+            white-space: nowrap;
+        }
+        .eta_badge.delayed {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .place_info_meta {
             font-size: 12px;
             color: #64748b;
             line-height: 1.4;
+            margin-top: 4px;
         }
 
         #map {
@@ -216,15 +225,16 @@
         }
 
         .custom_info_window {
-            padding: 6px 12px;
+            padding: 10px;
             background-color: #ffffff;
-            color: #2563eb;
+            color: #1e293b;
             border: 1px solid #2563eb;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 12px;
-            font-weight: 600;
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
-            white-space: nowrap;
+        }
+        .custom_info_window b {
+            color: #2563eb;
         }
     </style>
 </head>
@@ -232,47 +242,58 @@
 
 <div id="container">
     <div id="sidebar">
-        <div class="service_title">로지스틱스 맵 관제 시스템</div>
+        <div class="service_title">로지스틱스 & 유통 관제망</div>
 
         <div class="filter_panel">
             <div class="filter_group">
                 <label>📍 거점 지역 설정</label>
-                <input type="text" id="regionInput" placeholder="예: 고양시, 이천, 곤지암">
+                <input type="text" id="regionInput" placeholder="예: 고양시, 이천, 상봉역">
+            </div>
+
+            <div class="filter_group">
+                <label>🗂️ 대분류 인프라 카테고리</label>
+                <select id="mainCategory" onchange="handleCategoryChange()">
+                    <option value="logistics">카테고리 1: 운송사 B2B 인프라</option>
+                    <option value="retail">카테고리 2: 상업 유통망 (즉시 구매)</option>
+                </select>
             </div>
             
             <div class="filter_group">
-                <label>🚚 운송사/인프라 선택</label>
-                <select id="categorySelect">
-                    <option value="">전체운송사</option>
+                <label>🚚 세부 인프라 분류</label>
+                <select id="subCategory">
+                    <option value="">전체 운송사</option>
                     <option value="쿠팡">쿠팡 물류</option>
                     <option value="CJ대한통운">CJ대한통운</option>
                     <option value="한진택배">한진택배</option>
-                    <option value="롯데택배">롯데택배</option>
                 </select>
             </div>
 
             <div class="filter_group">
-                <label>🏭 인프라 세부 검색</label>
-                <input type="text" id="keywordInput" placeholder="비워두면 자동으로 '물류센터' 검색" onkeypress="if(event.keyCode==13) executeSearch();">
+                <label>🏭 인프라 세부 검색어 명시</label>
+                <input type="text" id="keywordInput" placeholder="비워두면 대분류 기본 명칭으로 탐색" onkeypress="if(event.keyCode==13) executeSearch();">
             </div>
 
-            <button class="search_btn" onclick="executeSearch()">물류 거점 1차 검색</button>
+            <button class="search_btn" onclick="executeSearch()">거점망 1차 검색</button>
         </div>
 
-        <div class="traffic_toggle_panel">
-            <span>🚥 실시간 도로 교통상황</span>
-            <button id="trafficBtn" class="toggle_btn active" onclick="toggleTraffic()">ON</button>
+        <div class="traffic_control_panel">
+            <div class="title">🚥 시뮬레이션 도로 교통량 설정</div>
+            <select id="trafficStatus" class="status_select" onchange="updateETATimes()">
+                <option value="normal">🟢 도로 원활 (평균 시속 60km/h 계산)</option>
+                <option value="heavy">🟡 정체 및 서행 (평균 시속 25km/h 계산)</option>
+                <option value="jam">🔴 극심한 교통 정체 (평균 시속 10km/h 계산)</option>
+            </select>
         </div>
 
         <hr class="divider">
 
         <div class="filter_group refine_group">
             <label>📦 취급/보관 품목 필터 (범위 좁히기)</label>
-            <input type="text" id="specialtyInput" placeholder="예: 악기, 원자재, 식자재, 가구 입력" oninput="filterBySpecialty()">
+            <input type="text" id="specialtyInput" placeholder="예: 악기, 원자재, 식자재, 가구 등 입력" oninput="filterBySpecialty()">
         </div>
 
         <div id="resultList">
-            <div class="placeholder_text">상단 조건을 입력한 후<br>'물류 거점 1차 검색' 버튼을 눌러주세요.</div>
+            <div class="placeholder_text">상단 조건을 입력한 후<br>'거점망 1차 검색' 버튼을 눌러주세요.</div>
         </div>
     </div>
     <div id="map"></div>
@@ -286,7 +307,7 @@
     let markers = [];       
     let infowindow;     
     let fetchedPlaces = []; 
-    let isTrafficOn = true; // 교통정보 상태 플래그
+    let currentCenterPos;   
 
     function initMap() {
         const container = document.getElementById('map');
@@ -300,8 +321,8 @@
         map = new kakao.maps.Map(container, options);
         ps = new kakao.maps.services.Places();
         infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
+        currentCenterPos = defaultPos;
 
-        // 🔥 [핵심] 지도 초기화 시점에 실시간 교통정보 레이어를 기본적으로 올림
         map.addOverlayMapTypeId(kakao.maps.MapTypeId.TRAFFIC);
 
         if (navigator.geolocation) {
@@ -309,11 +330,8 @@
                 function(position) {
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
-                    const locPosition = new kakao.maps.LatLng(lat, lon);
-                    map.setCenter(locPosition);
-                },
-                function(error) {
-                    console.log("기본 위치로 지도를 구동합니다.");
+                    currentCenterPos = new kakao.maps.LatLng(lat, lon);
+                    map.setCenter(currentCenterPos);
                 }
             );
         }
@@ -323,19 +341,28 @@
         kakao.maps.load(initMap);
     }
 
-    // 🚥 교통정보를 껐다 켰다 하는 스위치 함수
-    function toggleTraffic() {
-        const btn = document.getElementById('trafficBtn');
-        if (isTrafficOn) {
-            map.removeOverlayMapTypeId(kakao.maps.MapTypeId.TRAFFIC);
-            btn.textContent = "OFF";
-            btn.classList.remove('active');
-            isTrafficOn = false;
+    // 대분류 셀렉트 박스 변경 시 소분류 데이터 동적 교체 로직
+    function handleCategoryChange() {
+        const mainCat = document.getElementById('mainCategory').value;
+        const subCatSelect = document.getElementById('subCategory');
+        const keywordInput = document.getElementById('keywordInput');
+        
+        subCatSelect.innerHTML = ''; // 기존 옵션 초기화
+
+        if (mainCat === 'logistics') {
+            // 카테고리 1 스크립팅
+            subCatSelect.options[0] = new Option("전체 운송사", "");
+            subCatSelect.options[1] = new Option("쿠팡 물류", "쿠팡");
+            subCatSelect.options[2] = new Option("CJ대한통운", "CJ대한통운");
+            subCatSelect.options[3] = new Option("한진택배", "한진택배");
+            keywordInput.placeholder = "비워두면 자동으로 '물류센터' 검색";
         } else {
-            map.addOverlayMapTypeId(kakao.maps.MapTypeId.TRAFFIC);
-            btn.textContent = "ON";
-            btn.classList.add('active');
-            isTrafficOn = true;
+            // 카테고리 2 스크립팅 (즉시 구매 유통 인프라)
+            subCatSelect.options[0] = new Option("전체 소매 유통망", "");
+            subCatSelect.options[1] = new Option("코스트코", "코스트코");
+            subCatSelect.options[2] = new Option("대형마트 (이마트/롯데마트/홈플러스)", "대형마트");
+            subCatSelect.options[3] = new Option("소매점 (슈퍼마켓/편의점)", "소매점");
+            keywordInput.placeholder = "비워두면 자동으로 '마트' 검색";
         }
     }
 
@@ -343,15 +370,19 @@
         if (!ps) return;
 
         const region = document.getElementById('regionInput').value.trim();
-        const company = document.getElementById('categorySelect').value;
+        const mainCat = document.getElementById('mainCategory').value;
+        const subCatValue = document.getElementById('subCategory').value;
         let keyword = document.getElementById('keywordInput').value.trim();
 
+        // 사용자가 검색어를 명시하지 않았을 때 대분류 기준 기본 디폴트 키워드 매핑
         if (!keyword) {
-            keyword = "물류센터";
+            keyword = (mainCat === 'logistics') ? "물류센터" : "마트";
         }
 
         document.getElementById('specialtyInput').value = '';
-        const combinedQuery = `${region} ${company} ${keyword}`.trim().replace(/\s+/g, ' ');
+        
+        // 최종 결합형 고도화 쿼리 생성
+        const combinedQuery = `${region} ${subCatValue} ${keyword}`.trim().replace(/\s+/g, ' ');
 
         const searchOptions = {};
         if (!region) {
@@ -366,11 +397,16 @@
     function placesSearchCB(data, status, pagination) {
         if (status === kakao.maps.services.Status.OK) {
             fetchedPlaces = data; 
+            currentCenterPos = map.getCenter(); 
             renderPlaces(fetchedPlaces); 
         } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
-            document.getElementById('resultList').innerHTML = '<div class="placeholder_text">검색 결과가 없습니다.</div>';
+            document.getElementById('resultList').innerHTML = '<div class="placeholder_text">검색 결과가 없습니다.<br>분류망이나 지역명을 다시 조합해 보세요.</div>';
             removeMarkers();
         }
+    }
+
+    function updateETATimes() {
+        renderPlaces(fetchedPlaces);
     }
 
     function filterBySpecialty() {
@@ -397,47 +433,71 @@
         markers = [];
     }
 
+    function getDistanceKM(lat1, lng1, lat2, lng2) {
+        const R = 6371; 
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLng/2) * Math.sin(dLng/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c; 
+    }
+
     function renderPlaces(places) {
         const listEl = document.getElementById('resultList');
         listEl.innerHTML = '';
         removeMarkers();
 
-        if (places.length === 0) {
-            listEl.innerHTML = '<div class="placeholder_text">조건에 맞는 거점이 없습니다.</div>';
-            return;
-        }
+        if (places.length === 0) return;
 
         const bounds = new kakao.maps.LatLngBounds();
         const imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png';
         const imageSize = new kakao.maps.Size(31, 35); 
         const markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
 
+        const trafficCondition = document.getElementById('trafficStatus').value;
+        let speed = 60; 
+        if (trafficCondition === 'heavy') speed = 25;
+        if (trafficCondition === 'jam') speed = 10;
+
         for (let i = 0; i < places.length; i++) {
             const placePosition = new kakao.maps.LatLng(places[i].y, places[i].x);
+            const distance = getDistanceKM(currentCenterPos.getLat(), currentCenterPos.getLng(), places[i].y, places[i].x);
             
-            const marker = new kakao.maps.Marker({
-                position: placePosition,
-                image: markerImage,
-                map: map
-            });
+            let durationMinutes = Math.round(((distance * 1.3) / speed) * 60);
+            if (durationMinutes < 5) durationMinutes = 6; 
 
-            markers.push(marker);
+            let badgeClass = "eta_badge";
+            if (trafficCondition === 'heavy' || trafficCondition === 'jam') badgeClass += " delayed";
+
+            markers.push(new kakao.maps.Marker({ position: placePosition, image: markerImage, map: map }));
             bounds.extend(placePosition);
 
             const itemEl = document.createElement('div');
             itemEl.className = 'place_item';
-            itemEl.innerHTML = '<div class="place_title">' + places[i].place_name + '</div><div class="place_addr">' + places[i].address_name + '</div>';
+            itemEl.innerHTML = `
+                <div class="place_title">
+                    <span>${places[i].place_name}</span>
+                    <span class="${badgeClass}">⏱️ 약 ${durationMinutes}분</span>
+                </div>
+                <div class="place_info_meta">
+                    📍 반경: ${distance.toFixed(1)}km | 주소: ${places[i].address_name}
+                </div>
+            `;
             
-            (function(m, p, pos) {
-                const infoContent = '<div class="custom_info_window">' + p.place_name + '</div>';
+            (function(m, p, pos, time, dist) {
+                const infoContent = `
+                    <div class="custom_info_window">
+                        <b>${p.place_name}</b><br>
+                        🏢 유형: ${p.category_name}<br>
+                        ⚙️ 관제 거리: 약 ${dist.toFixed(1)}km | 소요 시간: <b>약 ${time}분</b>
+                    </div>`;
                 
-                kakao.maps.event.addListener(m, 'mouseover', function() {
+                kakao.maps.event.addListener(m, 'click', function() {
+                    map.panTo(pos);
                     infowindow.setContent(infoContent);
                     infowindow.open(map, m);
-                });
-
-                kakao.maps.event.addListener(m, 'mouseout', function() {
-                    infowindow.close();
                 });
 
                 itemEl.onclick = function() {
@@ -445,7 +505,7 @@
                     infowindow.setContent(infoContent);
                     infowindow.open(map, m);
                 };
-            })(marker, places[i], placePosition);
+            })(markers[markers.length - 1], places[i], placePosition, durationMinutes, distance);
 
             listEl.appendChild(itemEl);
         }
