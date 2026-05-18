@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>로지스틱스 맵 관제 시스템</title>
+    <title>로지스틱스 맵 관제 시스템 (교통정보 포함)</title>
     <style>
         body, html {
             margin: 0;
@@ -136,6 +136,38 @@
             border-color: #bbf7d0;
         }
 
+        /* 🚥 교통정보 토글 버튼 스타일 추가 */
+        .traffic_toggle_panel {
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .traffic_toggle_panel span {
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+        }
+        .toggle_btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .toggle_btn.active {
+            background: #ef4444;
+            color: #fff;
+            border-color: #ef4444;
+        }
+
         #resultList {
             flex: 1;
             overflow-y: auto;
@@ -180,7 +212,7 @@
         #map {
             flex: 1;
             height: 100%;
-            background-color: #e5e7eb; /* 지도 로드 전 회색 배경 표시 */
+            background-color: #e5e7eb;
         }
 
         .custom_info_window {
@@ -227,6 +259,11 @@
             <button class="search_btn" onclick="executeSearch()">물류 거점 1차 검색</button>
         </div>
 
+        <div class="traffic_toggle_panel">
+            <span>🚥 실시간 도로 교통상황</span>
+            <button id="trafficBtn" class="toggle_btn active" onclick="toggleTraffic()">ON</button>
+        </div>
+
         <hr class="divider">
 
         <div class="filter_group refine_group">
@@ -249,11 +286,11 @@
     let markers = [];       
     let infowindow;     
     let fetchedPlaces = []; 
+    let isTrafficOn = true; // 교통정보 상태 플래그
 
-    // 안전한 맵 초기화 함수
     function initMap() {
         const container = document.getElementById('map');
-        const defaultPos = new kakao.maps.LatLng(37.566826, 126.9786567); // 서울시청 기본값
+        const defaultPos = new kakao.maps.LatLng(37.566826, 126.9786567); 
         
         const options = {
             center: defaultPos,
@@ -264,7 +301,9 @@
         ps = new kakao.maps.services.Places();
         infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
 
-        // 브라우저 위치 권한 체크 및 에러 핸들러 추가하여 튕김 방지
+        // 🔥 [핵심] 지도 초기화 시점에 실시간 교통정보 레이어를 기본적으로 올림
+        map.addOverlayMapTypeId(kakao.maps.MapTypeId.TRAFFIC);
+
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 function(position) {
@@ -274,42 +313,47 @@
                     map.setCenter(locPosition);
                 },
                 function(error) {
-                    console.log("위치 권한 제한됨. 기본 위치로 지도를 구동합니다.");
+                    console.log("기본 위치로 지도를 구동합니다.");
                 }
             );
         }
     }
 
-    // 카카오 스크립트가 로드되었는지 확인 후 실행
     if (typeof kakao !== 'undefined' && kakao.maps) {
         kakao.maps.load(initMap);
-    } else {
-        alert("카카오 지도 스크립트 로드에 실패했습니다. API 키나 인터넷 연결을 확인해 주세요.");
     }
 
-    // 1차 다중 조건 검색
-    function executeSearch() {
-        if (!ps) {
-            alert("지도 서비스가 아직 준비되지 않았습니다.");
-            return;
+    // 🚥 교통정보를 껐다 켰다 하는 스위치 함수
+    function toggleTraffic() {
+        const btn = document.getElementById('trafficBtn');
+        if (isTrafficOn) {
+            map.removeOverlayMapTypeId(kakao.maps.MapTypeId.TRAFFIC);
+            btn.textContent = "OFF";
+            btn.classList.remove('active');
+            isTrafficOn = false;
+        } else {
+            map.addOverlayMapTypeId(kakao.maps.MapTypeId.TRAFFIC);
+            btn.textContent = "ON";
+            btn.classList.add('active');
+            isTrafficOn = true;
         }
+    }
+
+    function executeSearch() {
+        if (!ps) return;
 
         const region = document.getElementById('regionInput').value.trim();
         const company = document.getElementById('categorySelect').value;
         let keyword = document.getElementById('keywordInput').value.trim();
 
-        // 사용자가 세부 검색어를 비워두면 검색 정확도를 위해 '물류센터'를 자동 지정
         if (!keyword) {
             keyword = "물류센터";
         }
 
         document.getElementById('specialtyInput').value = '';
-
-        // 검색 최적화 조합 쿼리 생성
         const combinedQuery = `${region} ${company} ${keyword}`.trim().replace(/\s+/g, ' ');
 
         const searchOptions = {};
-        // 지역을 안 적었다면 현재 보고 있는 지도 중심 반경 10km를 뒤짐
         if (!region) {
             searchOptions.location = map.getCenter();
             searchOptions.radius = 10000;
@@ -324,15 +368,11 @@
             fetchedPlaces = data; 
             renderPlaces(fetchedPlaces); 
         } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
-            const listEl = document.getElementById('resultList');
-            listEl.innerHTML = '<div class="placeholder_text">검색 결과가 없습니다.<br>지역명이나 운송사 조건을 다르게 해보세요.</div>';
+            document.getElementById('resultList').innerHTML = '<div class="placeholder_text">검색 결과가 없습니다.</div>';
             removeMarkers();
-        } else {
-            alert('지도 검색 중 오류가 발생했습니다.');
         }
     }
 
-    // 2차 내부 품목 데이터 실시간 필터링
     function filterBySpecialty() {
         const filterValue = document.getElementById('specialtyInput').value.trim().toLowerCase();
         
@@ -341,7 +381,6 @@
             return;
         }
 
-        // 받아온 카카오 데이터셋 안에서 사용자가 친 키워드(가구, 식자재 등) 매칭 검사
         const filteredResult = fetchedPlaces.filter(place => {
             const matchName = place.place_name.toLowerCase().includes(filterValue);
             const matchCategory = place.category_name.toLowerCase().includes(filterValue);
@@ -364,7 +403,7 @@
         removeMarkers();
 
         if (places.length === 0) {
-            listEl.innerHTML = '<div class="placeholder_text">해당 품목을 취급하는 거점이 리스트에 없습니다.</div>';
+            listEl.innerHTML = '<div class="placeholder_text">조건에 맞는 거점이 없습니다.</div>';
             return;
         }
 
