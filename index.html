@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스마트 물류 관제 디렉토리</title>
+    <title>로지스틱스 맵 관제 시스템</title>
     <style>
         body, html {
             margin: 0;
@@ -21,7 +21,6 @@
             height: 100vh;
         }
 
-        /* 왼쪽 사이드바 관제 패널 */
         #sidebar {
             width: 380px;
             height: 100%;
@@ -117,7 +116,6 @@
             margin: 16px 0;
         }
 
-        /* 2차 세부 보관 품목 필터링 영역 */
         .refine_group {
             background-color: #f0fdf4;
             padding: 14px;
@@ -147,12 +145,12 @@
             margin-top: 10px;
         }
 
-        #resultList::-webkit-scrollbar {
-            width: 4px;
-        }
-        #resultList::-webkit-scrollbar-thumb {
-            background: #e2e8f0;
-            border-radius: 2px;
+        .placeholder_text {
+            padding: 30px 20px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13px;
+            line-height: 1.5;
         }
 
         .place_item {
@@ -182,6 +180,7 @@
         #map {
             flex: 1;
             height: 100%;
+            background-color: #e5e7eb; /* 지도 로드 전 회색 배경 표시 */
         }
 
         .custom_info_window {
@@ -212,9 +211,9 @@
             <div class="filter_group">
                 <label>🚚 운송사/인프라 선택</label>
                 <select id="categorySelect">
-                    <option value="">전체운송사 (전체업종)</option>
-                    <option value="쿠팡">쿠팡 물류 (Coupang)</option>
-                    <option value="CJ대한통운">CJ대한통운 (CJ Logistics)</option>
+                    <option value="">전체운송사</option>
+                    <option value="쿠팡">쿠팡 물류</option>
+                    <option value="CJ대한통운">CJ대한통운</option>
                     <option value="한진택배">한진택배</option>
                     <option value="롯데택배">롯데택배</option>
                 </select>
@@ -222,7 +221,7 @@
 
             <div class="filter_group">
                 <label>🏭 인프라 세부 검색</label>
-                <input type="text" id="keywordInput" placeholder="예: 물류센터, 풀필먼트, 허브" onkeypress="if(event.keyCode==13) executeSearch();">
+                <input type="text" id="keywordInput" placeholder="비워두면 자동으로 '물류센터' 검색" onkeypress="if(event.keyCode==13) executeSearch();">
             </div>
 
             <button class="search_btn" onclick="executeSearch()">물류 거점 1차 검색</button>
@@ -232,15 +231,17 @@
 
         <div class="filter_group refine_group">
             <label>📦 취급/보관 품목 필터 (범위 좁히기)</label>
-            <input type="text" id="specialtyInput" placeholder="예: 악기, 원자재, 식자재, 가구" oninput="filterBySpecialty()">
+            <input type="text" id="specialtyInput" placeholder="예: 악기, 원자재, 식자재, 가구 입력" oninput="filterBySpecialty()">
         </div>
 
-        <div id="resultList"></div>
+        <div id="resultList">
+            <div class="placeholder_text">상단 조건을 입력한 후<br>'물류 거점 1차 검색' 버튼을 눌러주세요.</div>
+        </div>
     </div>
     <div id="map"></div>
 </div>
 
-<script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=여기_본인의_자바스크립트_키_입력&libraries=services"></script>
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=e78e66ec37d3a3a35bb423e78130d886&libraries=services"></script>
 
 <script>
     let map;            
@@ -249,47 +250,73 @@
     let infowindow;     
     let fetchedPlaces = []; 
 
-    // 카카오맵 SDK 로드 후 실행
-    kakao.maps.load(function() {
+    // 안전한 맵 초기화 함수
+    function initMap() {
         const container = document.getElementById('map');
+        const defaultPos = new kakao.maps.LatLng(37.566826, 126.9786567); // 서울시청 기본값
+        
         const options = {
-            center: new kakao.maps.LatLng(37.402707, 127.105199), // 초기 중심점 (판교 부근)
-            level: 9 
+            center: defaultPos,
+            level: 7
         };
 
         map = new kakao.maps.Map(container, options);
         ps = new kakao.maps.services.Places();
         infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
 
-        // 테스트용 초기 가상 물류 데이터 세팅 (첫 화면에 바로 뜨는 샘플 데이터)
-        fetchedPlaces = [
-            { place_name: "쿠팡 고양 메가 풀필먼트 (식자재 및 생활용품 보관)", address_name: "경기도 고양시 덕양구 권율대로 570", y: 37.6444, x: 126.8865, category_name: "물류센터" },
-            { place_name: "CJ대한통운 곤지암 메가허브 (가구 및 대형화물 이송)", address_name: "경기도 광주시 곤지암읍 건업길 14", y: 37.3412, x: 127.3234, category_name: "물류센터" },
-            { place_name: "한진 인천공항 GDC (수입 악기 및 고가품 보관소)", address_name: "인천광역시 중구 공항동로 296", y: 37.4525, x: 126.4712, category_name: "물류센터" },
-            { place_name: "롯데물류 오산센터 (전자제품 및 산업 원자재 창고)", address_name: "경기도 오산시 가장산업서로 100", y: 37.1612, x: 127.0345, category_name: "물류센터" }
-        ];
+        // 브라우저 위치 권한 체크 및 에러 핸들러 추가하여 튕김 방지
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const locPosition = new kakao.maps.LatLng(lat, lon);
+                    map.setCenter(locPosition);
+                },
+                function(error) {
+                    console.log("위치 권한 제한됨. 기본 위치로 지도를 구동합니다.");
+                }
+            );
+        }
+    }
 
-        // 초기 샘플 데이터 뿌리기
-        renderPlaces(fetchedPlaces);
-    });
+    // 카카오 스크립트가 로드되었는지 확인 후 실행
+    if (typeof kakao !== 'undefined' && kakao.maps) {
+        kakao.maps.load(initMap);
+    } else {
+        alert("카카오 지도 스크립트 로드에 실패했습니다. API 키나 인터넷 연결을 확인해 주세요.");
+    }
 
-    // 1차 API 결합 키워드 검색
+    // 1차 다중 조건 검색
     function executeSearch() {
-        const region = document.getElementById('regionInput').value.trim();
-        const company = document.getElementById('categorySelect').value;
-        const keyword = document.getElementById('keywordInput').value.trim();
-
-        document.getElementById('specialtyInput').value = '';
-
-        if (!region && !company && !keyword) {
-            alert('검색 조건을 최소 하나 이상 입력해 주세요.');
+        if (!ps) {
+            alert("지도 서비스가 아직 준비되지 않았습니다.");
             return;
         }
 
+        const region = document.getElementById('regionInput').value.trim();
+        const company = document.getElementById('categorySelect').value;
+        let keyword = document.getElementById('keywordInput').value.trim();
+
+        // 사용자가 세부 검색어를 비워두면 검색 정확도를 위해 '물류센터'를 자동 지정
+        if (!keyword) {
+            keyword = "물류센터";
+        }
+
+        document.getElementById('specialtyInput').value = '';
+
+        // 검색 최적화 조합 쿼리 생성
         const combinedQuery = `${region} ${company} ${keyword}`.trim().replace(/\s+/g, ' ');
-        
-        // 카카오 API 검색 호출
-        ps.keywordSearch(combinedQuery, placesSearchCB);
+
+        const searchOptions = {};
+        // 지역을 안 적었다면 현재 보고 있는 지도 중심 반경 10km를 뒤짐
+        if (!region) {
+            searchOptions.location = map.getCenter();
+            searchOptions.radius = 10000;
+            searchOptions.sort = kakao.maps.services.SortBy.DISTANCE;
+        }
+
+        ps.keywordSearch(combinedQuery, placesSearchCB, searchOptions);
     }
 
     function placesSearchCB(data, status, pagination) {
@@ -297,6 +324,95 @@
             fetchedPlaces = data; 
             renderPlaces(fetchedPlaces); 
         } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
-            alert('해당 조건의 물류 거점을 찾을 수 없습니다. (샘플 데이터 유지)');
-        } else if (status === kakao.maps.services.Status.ERROR) {
-            alert('데이터 로
+            const listEl = document.getElementById('resultList');
+            listEl.innerHTML = '<div class="placeholder_text">검색 결과가 없습니다.<br>지역명이나 운송사 조건을 다르게 해보세요.</div>';
+            removeMarkers();
+        } else {
+            alert('지도 검색 중 오류가 발생했습니다.');
+        }
+    }
+
+    // 2차 내부 품목 데이터 실시간 필터링
+    function filterBySpecialty() {
+        const filterValue = document.getElementById('specialtyInput').value.trim().toLowerCase();
+        
+        if (!filterValue) {
+            renderPlaces(fetchedPlaces);
+            return;
+        }
+
+        // 받아온 카카오 데이터셋 안에서 사용자가 친 키워드(가구, 식자재 등) 매칭 검사
+        const filteredResult = fetchedPlaces.filter(place => {
+            const matchName = place.place_name.toLowerCase().includes(filterValue);
+            const matchCategory = place.category_name.toLowerCase().includes(filterValue);
+            return matchName || matchCategory;
+        });
+
+        renderPlaces(filteredResult);
+    }
+
+    function removeMarkers() {
+        for (let i = 0; i < markers.length; i++) {
+            markers[i].setMap(null);
+        }
+        markers = [];
+    }
+
+    function renderPlaces(places) {
+        const listEl = document.getElementById('resultList');
+        listEl.innerHTML = '';
+        removeMarkers();
+
+        if (places.length === 0) {
+            listEl.innerHTML = '<div class="placeholder_text">해당 품목을 취급하는 거점이 리스트에 없습니다.</div>';
+            return;
+        }
+
+        const bounds = new kakao.maps.LatLngBounds();
+        const imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png';
+        const imageSize = new kakao.maps.Size(31, 35); 
+        const markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
+
+        for (let i = 0; i < places.length; i++) {
+            const placePosition = new kakao.maps.LatLng(places[i].y, places[i].x);
+            
+            const marker = new kakao.maps.Marker({
+                position: placePosition,
+                image: markerImage,
+                map: map
+            });
+
+            markers.push(marker);
+            bounds.extend(placePosition);
+
+            const itemEl = document.createElement('div');
+            itemEl.className = 'place_item';
+            itemEl.innerHTML = '<div class="place_title">' + places[i].place_name + '</div><div class="place_addr">' + places[i].address_name + '</div>';
+            
+            (function(m, p, pos) {
+                const infoContent = '<div class="custom_info_window">' + p.place_name + '</div>';
+                
+                kakao.maps.event.addListener(m, 'mouseover', function() {
+                    infowindow.setContent(infoContent);
+                    infowindow.open(map, m);
+                });
+
+                kakao.maps.event.addListener(m, 'mouseout', function() {
+                    infowindow.close();
+                });
+
+                itemEl.onclick = function() {
+                    map.panTo(pos);
+                    infowindow.setContent(infoContent);
+                    infowindow.open(map, m);
+                };
+            })(marker, places[i], placePosition);
+
+            listEl.appendChild(itemEl);
+        }
+
+        map.setBounds(bounds);
+    }
+</script>
+</body>
+</html>
