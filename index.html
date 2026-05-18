@@ -1,3 +1,6 @@
+요청하신 조건에 맞춰 왼쪽 사이드바에 음식 종류별(한식, 일식, 중식, 양식, 빵집) 카테고리 탭을 추가하고, 클릭 시 현재 지도 중심 주변의 맛집을 검색하여 지도에 맛집 전용 아이콘(빨간색 마커)으로 표시되도록 전면 수정된 `index.html` 전체 코드입니다.
+
+```html
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -34,7 +37,7 @@
 
         /* 검색창 영역 */
         .search_box {
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
         #keyword {
@@ -55,6 +58,35 @@
 
         button:hover {
             background-color: #fada0a;
+        }
+
+        /* 음식 카테고리 탭 영역 스타일 */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+        }
+
+        .tab_btn {
+            flex: 1;
+            padding: 8px 4px;
+            background-color: #ffffff;
+            color: #333;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: normal;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        /* 활성화된 탭 스타일 */
+        .tab_btn.active {
+            background-color: #fee500;
+            border-color: #fee500;
+            font-weight: bold;
         }
 
         /* 결과 리스트 영역 */
@@ -81,8 +113,16 @@
             <input type="text" id="keyword" placeholder="장소, 주소 검색">
             <button onclick="searchPlaces()">검색</button>
         </div>
-        <div id="resultList">
-            </div>
+        
+        <div class="tabs">
+            <button class="tab_btn" onclick="searchByCategory('한식')">한식</button>
+            <button class="tab_btn" onclick="searchByCategory('일식')">일식</button>
+            <button class="tab_btn" onclick="searchByCategory('중식')">중식</button>
+            <button class="tab_btn" onclick="searchByCategory('양식')">양식</button>
+            <button class="tab_btn" onclick="searchByCategory('빵집')">빵집</button>
+        </div>
+
+        <div id="resultList"></div>
     </div>
     <div id="map"></div>
 </div>
@@ -90,8 +130,10 @@
 <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=e78e66ec37d3a3a35bb423e78130d886&libraries=services"></script>
 
 <script>
-    let map; // 지도 객체
-    let ps;  // 장소 검색 서비스 객체
+    let map;        // 지도 객체
+    let ps;         // 장소 검색 서비스 객체
+    let markers = [];   // 검색 결과 마커를 저장할 배열
+    let infowindow; // 장소명을 보여줄 인포윈도우 객체
 
     // 지도가 로드된 후 실행되도록 kakao.maps.load 사용
     kakao.maps.load(function() {
@@ -100,7 +142,7 @@
         // 초기 옵션 (현재 위치를 찾기 전 기본 위치: 서울시청)
         const options = {
             center: new kakao.maps.LatLng(37.566826, 126.9786567),
-            level: 5
+            level: 4
         };
 
         // 지도 생성
@@ -108,6 +150,9 @@
         
         // 장소 검색 서비스 객체 생성
         ps = new kakao.maps.services.Places();
+
+        // 공용 인포윈도우 객체 생성
+        infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
 
         // 위치 권한 요청 및 현재 위치 설정
         if (navigator.geolocation) {
@@ -120,7 +165,7 @@
                 // 지도의 중심을 현재 위치로 변경
                 map.setCenter(locPosition);
                 
-                // 내 위치에 마커 표시
+                // 내 위치에 마커 표시 (기본 파란색 마커)
                 const marker = new kakao.maps.Marker({
                     map: map,
                     position: locPosition
@@ -131,7 +176,33 @@
         }
     });
 
-    // 검색 함수
+    // 카테고리 탭 클릭 시 주변 장소를 검색하는 함수
+    function searchByCategory(category) {
+        // 탭 버튼 스타일 활성화 상태 업데이트
+        const buttons = document.querySelectorAll('.tab_btn');
+        buttons.forEach(btn => {
+            if (btn.textContent === category) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // 일반 텍스트 검색창 초기화
+        document.getElementById('keyword').value = '';
+
+        // 현재 지도의 중심 좌표 획득
+        const currentCenter = map.getCenter();
+
+        // 카카오 API를 활용해 현재 지도 중심 기준 반경 2km 이내의 해당 카테고리 맛집 검색
+        ps.keywordSearch(category, placesSearchCB, {
+            location: currentCenter,
+            radius: 2000,
+            sort: kakao.maps.services.SortBy.DISTANCE
+        });
+    }
+
+    // 일반 텍스트 키워드 검색 함수
     function searchPlaces() {
         const keyword = document.getElementById('keyword').value;
 
@@ -140,7 +211,11 @@
             return;
         }
 
-        // 카카오 장소 검색 API 호출
+        // 텍스트 검색 시 카테고리 탭 활성화 상태 전체 해제
+        const buttons = document.querySelectorAll('.tab_btn');
+        buttons.forEach(btn => btn.classList.remove('active'));
+
+        // 카카오 장소 검색 API 호출 (전체 범위 검색)
         ps.keywordSearch(keyword, placesSearchCB);
     }
 
@@ -155,28 +230,78 @@
         }
     }
 
-    // 결과 리스트 표시 (간단 구현)
+    // 기존에 생성된 검색 마커들을 삭제하는 함수
+    function removeMarkers() {
+        for (let i = 0; i < markers.length; i++) {
+            markers[i].setMap(null);
+        }
+        markers = [];
+    }
+
+    // 결과 리스트와 지도 마커 표시 함수
     function displayPlaces(places) {
         const listEl = document.getElementById('resultList');
-        listEl.innerHTML = ''; // 이전 결과 삭제
+        listEl.innerHTML = ''; // 이전 결과 리스트 삭제
+        removeMarkers();       // 이전 검색 마커 삭제
+
+        const bounds = new kakao.maps.LatLngBounds();
+
+        // 맛집 전용 아이콘 설정 (카카오맵 공식 빨간색 마커 이미지 적용)
+        const imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png';
+        const imageSize = new kakao.maps.Size(31, 35); 
+        const markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
 
         for (let i = 0; i < places.length; i++) {
-            const itemEl = document.createElement('div');
-            itemEl.style.padding = '10px';
-            itemEl.style.borderBottom = '1px solid #eee';
-            itemEl.innerHTML = '<strong>' + places[i].place_name + '</strong><br>' + places[i].address_name;
+            const placePosition = new kakao.maps.LatLng(places[i].y, places[i].x);
             
-            // 리스트 클릭 시 해당 위치로 지도 이동
-            itemEl.onclick = (function(place) {
-                return function() {
-                    const moveLatLon = new kakao.maps.LatLng(place.y, place.x);
-                    map.panTo(moveLatLon);
+            // 맛집 아이콘을 적용하여 마커 생성
+            const marker = new kakao.maps.Marker({
+                position: placePosition,
+                image: markerImage,
+                map: map
+            });
+
+            markers.push(marker);
+            bounds.extend(placePosition);
+
+            // 사이드바에 띄울 리스트 아이템 엘리먼트 생성
+            const itemEl = document.createElement('div');
+            itemEl.style.padding = '12px 10px';
+            itemEl.style.borderBottom = '1px solid #eee';
+            itemEl.style.cursor = 'pointer';
+            itemEl.innerHTML = '<strong>' + places[i].place_name + '</strong><br><span style="font-size:12px; color:#666;">' + places[i].address_name + '</span>';
+            
+            // 이벤트 바인딩을 위한 즉시실행함수 처리 (클로저)
+            (function(m, p, pos) {
+                const infoContent = '<div style="padding:5px;font-size:12px;white-space:nowrap;text-align:center;">' + p.place_name + '</div>';
+                
+                // 마커 마우스 오버 이벤트
+                kakao.maps.event.addListener(m, 'mouseover', function() {
+                    infowindow.setContent(infoContent);
+                    infowindow.open(map, m);
+                });
+
+                // 마커 마우스 아웃 이벤트
+                kakao.maps.event.addListener(m, 'mouseout', function() {
+                    infowindow.close();
+                });
+
+                // 리스트 아이템 클릭 시 지도 이동 및 인포윈도우 활성화
+                itemEl.onclick = function() {
+                    map.panTo(pos);
+                    infowindow.setContent(infoContent);
+                    infowindow.open(map, m);
                 };
-            })(places[i]);
+            })(marker, places[i], placePosition);
 
             listEl.appendChild(itemEl);
         }
+
+        // 검색된 모든 맛집 장소들이 한눈에 보이도록 지도 범위 재조정
+        map.setBounds(bounds);
     }
 </script>
 </body>
 </html>
+
+```
