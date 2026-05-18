@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BAT-CAVE: 맛집 추적 시스템</title>
+    <title>장소 검색 대시보드</title>
     <style>
-        /* 기본 설정: 배트케이브 테마를 위한 전체 다크모드 */
+        /* 기본 설정 및 미니멀한 서체 적용 */
         body, html {
             margin: 0;
             padding: 0;
             height: 100%;
-            font-family: 'Malgun Gothic', dotum, sans-serif;
-            background-color: #0b0f19;
-            color: #c2c7d0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #0f172a;
+            color: #f1f5f9;
+            -webkit-font-smoothing: antialiased;
         }
 
         /* 2분할 레이아웃 컨테이너 */
@@ -22,179 +23,167 @@
             height: 100vh;
         }
 
-        /* 왼쪽 사이드바 (배트맨 전술 모니터 스타일) */
+        /* 왼쪽 사이드바 (모던 다크 대시보드 스타일) */
         #sidebar {
-            width: 380px;
+            width: 360px;
             height: 100%;
-            padding: 20px;
+            padding: 24px 20px;
             box-sizing: border-box;
-            border-right: 2px solid #1a2333;
+            border-right: 1px solid #1e293b;
             display: flex;
             flex-direction: column;
-            background-color: #0d1321; /* 딥 네이비 블랙 */
-            box-shadow: 5px 0 25px rgba(0, 0, 0, 0.5);
+            background-color: #0f172a; /* 슬레이트 다크 */
             z-index: 10;
         }
 
-        /* 배트맨 시스템 타이틀 로고 */
-        .system_title {
-            font-size: 11px;
-            letter-spacing: 3px;
-            color: #ff9d00; /* 배트맨 골드 */
-            text-transform: uppercase;
-            margin-bottom: 15px;
-            font-weight: bold;
-            opacity: 0.8;
+        /* 깔끔한 서비스 메인 타이틀 */
+        .service_title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #f8fafc;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 8px;
         }
         
-        .system_title::before {
+        /* 타이틀 옆의 깔끔한 인디케이터 */
+        .service_title::before {
             content: '';
             display: inline-block;
-            width: 6px;
-            height: 6px;
-            background-color: #ff9d00;
-            box-shadow: 0 0 8px #ff9d00;
+            width: 8px;
+            height: 8px;
+            background-color: #38bdf8; /* 트렌디한 스카이 블루 */
             border-radius: 50%;
         }
 
         /* 검색창 영역 */
         .search_box {
             position: relative;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         #keyword {
             width: 100%;
-            padding: 12px 15px;
+            padding: 12px 16px;
             box-sizing: border-box;
-            background-color: #141d30;
-            border: 1px solid #233554;
-            border-radius: 6px;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
             color: #fff;
             font-size: 14px;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease-in-out;
         }
 
-        /* 검색창 포커스 시 네온 글로우 효과 */
+        /* 포커스 시 깔끔한 인디고 블루 외곽선 */
         #keyword:focus {
             outline: none;
-            border-color: #ff9d00;
-            box-shadow: 0 0 10px rgba(255, 157, 0, 0.3);
-            background-color: #17223b;
+            border-color: #38bdf8;
+            background-color: #1e293b;
         }
 
-        /* 입력창 내부 우측 배치용 버튼 */
+        /* 검색 내부 버튼 */
         .search_box button {
             position: absolute;
-            right: 5px;
-            top: 5px;
-            padding: 7px 15px;
-            background-color: #ff9d00;
-            color: #0d1321;
+            right: 6px;
+            top: 6px;
+            padding: 6px 14px;
+            background-color: #38bdf8;
+            color: #0f172a;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
-            font-weight: bold;
+            font-weight: 600;
             font-size: 13px;
-            transition: all 0.2s ease;
+            transition: background-color 0.2s;
         }
 
         .search_box button:hover {
-            background-color: #ffb74d;
-            box-shadow: 0 0 12px rgba(255, 157, 0, 0.5);
+            background-color: #7dd3fc;
         }
 
-        /* 하이테크 기계 격자 구조의 탭 메뉴 */
+        /* 가로 스크롤 방식의 미니멀 탭 메뉴 */
         .tabs {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
+            display: flex;
+            gap: 6px;
             margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 4px;
         }
 
-        /* 배트맨 전술 버튼 스킨 */
+        /* 가로 스크롤바 가리기 */
+        .tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 대시보드 전용 칩(Chip) 스타일 버튼 */
         .tab_btn {
-            padding: 10px 5px;
-            background: linear-gradient(135deg, #141d30 0%, #0f172a 100%);
-            color: #8892b0;
-            border: 1px solid #233554;
-            border-radius: 4px;
+            padding: 8px 14px;
+            background-color: #1e293b;
+            color: #94a3b8;
+            border: 1px solid #334155;
+            border-radius: 20px; /* 라운드 처리로 트렌디하게 */
             font-size: 13px;
             cursor: pointer;
-            font-weight: bold;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            text-align: center;
-            letter-spacing: 1px;
+            white-space: nowrap;
+            transition: all 0.2s;
         }
 
         .tab_btn:hover {
             color: #fff;
-            border-color: #64ffda; /* 기계적인 느낌의 시안 블루 살짝 추가 */
-            background-color: #17223b;
+            border-color: #475569;
+            background-color: #334155;
         }
 
-        /* 활성화된 타겟 스캔 탭 (배트맨 골드 라이팅 적용) */
+        /* 선택된 탭 스타일 */
         .tab_btn.active {
-            color: #0d1321;
-            background: #ff9d00;
-            border-color: #ff9d00;
-            box-shadow: 0 0 15px rgba(255, 157, 0, 0.4);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            color: #fff;
+            background-color: #0284c7;
+            border-color: #0284c7;
+            font-weight: 600;
         }
 
-        /* 결과 데이터 리스트 스크롤 영역 */
+        /* 결과 데이터 리스트 영역 */
         #resultList {
             flex: 1;
             overflow-y: auto;
-            background: #090d16;
-            border: 1px solid #1e2d4a;
-            border-radius: 6px;
-            padding: 5px;
+            background: #0b0f19;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
         }
 
-        /* 스크롤바 커스텀 (기계 내부 인터페이스 느낌) */
+        /* 리스트 스크롤바 정돈 */
         #resultList::-webkit-scrollbar {
-            width: 6px;
-        }
-        #resultList::-webkit-scrollbar-track {
-            background: #090d16;
+            width: 4px;
         }
         #resultList::-webkit-scrollbar-thumb {
-            background: #233554;
-            border-radius: 3px;
-        }
-        #resultList::-webkit-scrollbar-thumb:hover {
-            background: #ff9d00;
+            background: #334155;
+            border-radius: 2px;
         }
 
-        /* 검색된 데이터 아이템 스타일 (타겟 리스트) */
+        /* 개별 장소 리스트 디자인 */
         .place_item {
-            padding: 14px;
-            border-bottom: 1px solid #141d30;
+            padding: 16px;
+            border-bottom: 1px solid #1e293b;
             cursor: pointer;
-            transition: all 0.2s ease;
-            border-left: 3px solid transparent;
-            margin-bottom: 2px;
+            transition: background-color 0.2s;
         }
 
         .place_item:hover {
-            background-color: #10192c;
-            border-left-color: #ff9d00; /* 호버 시 전술적 마킹 */
+            background-color: #1e293b;
         }
 
         .place_title {
-            color: #e2e8f0;
+            color: #f8fafc;
             font-size: 14px;
-            font-weight: bold;
+            font-weight: 600;
             margin-bottom: 4px;
         }
 
         .place_addr {
             font-size: 12px;
-            color: #718096;
+            color: #94a3b8;
+            line-height: 1.4;
         }
 
         /* 오른쪽 지도 영역 */
@@ -203,16 +192,16 @@
             height: 100%;
         }
 
-        /* 카카오 지도 인포윈도우 다크모드 커스텀 커버용 */
-        .bat_info_window {
-            padding: 8px 12px;
-            background-color: #0d1321;
-            color: #ff9d00;
-            border: 1px solid #ff9d00;
-            border-radius: 4px;
+        /* 깔끔한 미니멀 인포윈도우 커스텀 */
+        .custom_info_window {
+            padding: 6px 12px;
+            background-color: #0f172a;
+            color: #ffffff;
+            border: 1px solid #334155;
+            border-radius: 6px;
             font-size: 12px;
-            font-weight: bold;
-            box-shadow: 0 0 10px rgba(255,157,0,0.5);
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             white-space: nowrap;
         }
     </style>
@@ -221,19 +210,19 @@
 
 <div id="container">
     <div id="sidebar">
-        <div class="system_title">Wayne Ent. Target Scanner v3.0</div>
+        <div class="service_title">장소 검색 서비스</div>
 
         <div class="search_box">
-            <input type="text" id="keyword" placeholder="고담시 내부 지역 스캔..." onkeypress="if(event.keyCode==13) searchPlaces();">
-            <button onclick="searchPlaces()">SCAN</button>
+            <input type="text" id="keyword" placeholder="장소, 주소, 키워드 검색" onkeypress="if(event.keyCode==13) searchPlaces();">
+            <button onclick="searchPlaces()">검색</button>
         </div>
         
         <div class="tabs">
-            <button class="tab_btn" onclick="searchByCategory('한식')">KOREAN</button>
-            <button class="tab_btn" onclick="searchByCategory('일식')">JAPANESE</button>
-            <button class="tab_btn" onclick="searchByCategory('중식')">CHINESE</button>
-            <button class="tab_btn" onclick="searchByCategory('양식')">WESTERN</button>
-            <button class="tab_btn" onclick="searchByCategory('빵집')">BAKERY</button>
+            <button class="tab_btn" onclick="searchByCategory('한식')">한식</button>
+            <button class="tab_btn" onclick="searchByCategory('일식')">일식</button>
+            <button class="tab_btn" onclick="searchByCategory('중식')">중식</button>
+            <button class="tab_btn" onclick="searchByCategory('양식')">양식</button>
+            <button class="tab_btn" onclick="searchByCategory('빵집')">빵집</button>
         </div>
 
         <div id="resultList"></div>
@@ -246,73 +235,55 @@
 <script>
     let map;        // 지도 객체
     let ps;         // 장소 검색 서비스 객체
-    let markers = [];   // 검색 결과 마커를 저장할 배열
-    let infowindow; // 장소명을 보여줄 인포윈도우 객체
+    let markers = [];   // 마커 배열
+    let infowindow; // 인포윈도우 객체
 
-    // 지도가 로드된 후 실행되도록 kakao.maps.load 사용
     kakao.maps.load(function() {
         const container = document.getElementById('map');
         
-        // 초기 옵션 (기본 위치: 서울시청)
         const options = {
             center: new kakao.maps.LatLng(37.566826, 126.9786567),
             level: 4
         };
 
-        // 지도 생성
         map = new kakao.maps.Map(container, options);
-        
-        // 장소 검색 서비스 객체 생성
         ps = new kakao.maps.services.Places();
+        infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
 
-        // 공용 인포윈도우 객체 생성 (배경 흰색 상자를 지우기 위해 스타일 초기화 옵션 사용)
-        infowindow = new kakao.maps.InfoWindow({ 
-            zIndex: 1,
-            disableAutoPan: false
-        });
-
-        // 위치 권한 요청 및 현재 배트-포지션 설정
+        // 내 현재 위치 기준 중심 설정
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
-                const lat = position.coords.latitude; // 위도
-                const lon = position.coords.longitude; // 경도
-                
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
                 const locPosition = new kakao.maps.LatLng(lat, lon);
                 
-                // 지도의 중심을 현재 위치로 변경
                 map.setCenter(locPosition);
                 
-                // 내 위치에 베이스 마커 표시 (기본 파란색 마커)
-                const marker = new kakao.maps.Marker({
+                // 내 현재 위치 마커 생성
+                new kakao.maps.Marker({
                     map: map,
                     position: locPosition
                 });
             }, function(error) {
-                console.error("위치 관제 시스템 연결 실패.", error);
+                console.error("위치 정보 호출 실패", error);
             });
         }
     });
 
-    // 카테고리 탭 클릭 시 주변 장소를 스캔하는 함수
+    // 카테고리 선택 검색
     function searchByCategory(category) {
-        // 탭 버튼 스타일 활성화 상태 업데이트
         const buttons = document.querySelectorAll('.tab_btn');
         buttons.forEach(btn => {
-            // 버튼 내부 영문명과 매칭을 위한 한글 데이터 판단 가공
-            if (btn.getAttribute('onclick').includes(category)) {
+            if (btn.textContent === category) {
                 btn.classList.add('active');
             } else {
                 btn.classList.remove('active');
             }
         });
 
-        // 일반 텍스트 검색창 초기화
         document.getElementById('keyword').value = '';
-
-        // 현재 지도의 중심 좌표 획득
         const currentCenter = map.getCenter();
 
-        // 카카오 API를 활용해 현재 지도 중심 기준 반경 2km 이내의 해당 카테고리 맛집 검색
         ps.keywordSearch(category, placesSearchCB, {
             location: currentCenter,
             radius: 2000,
@@ -320,35 +291,33 @@
         });
     }
 
-    // 일반 키워드 스캔 함수
+    // 일반 텍스트 검색
     function searchPlaces() {
         const keyword = document.getElementById('keyword').value;
 
         if (!keyword.replace(/^\s+|\s+$/g, '')) {
-            alert('스캔할 타겟 키워드를 입력하십시오.');
+            alert('검색어를 입력해 주세요.');
             return;
         }
 
-        // 텍스트 검색 시 카테고리 탭 활성화 상태 전체 해제
         const buttons = document.querySelectorAll('.tab_btn');
         buttons.forEach(btn => btn.classList.remove('active'));
 
-        // 카카오 장소 검색 API 호출 (전체 범위 검색)
         ps.keywordSearch(keyword, placesSearchCB);
     }
 
-    // 장소 검색 완료 시 호출되는 콜백 함수
+    // 결과 핸들러 콜백
     function placesSearchCB(data, status, pagination) {
         if (status === kakao.maps.services.Status.OK) {
             displayPlaces(data);
         } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
-            alert('해당 반경 내에 타겟이 식별되지 않습니다.');
+            alert('검색 결과가 없습니다.');
         } else if (status === kakao.maps.services.Status.ERROR) {
-            alert('데이터 동기화 도중 치명적 오류가 발생했습니다.');
+            alert('검색 중 오류가 발생했습니다.');
         }
     }
 
-    // 기존에 생성된 검색 마커들을 삭제하는 함수
+    // 마커 리셋
     function removeMarkers() {
         for (let i = 0; i < markers.length; i++) {
             markers[i].setMap(null);
@@ -356,15 +325,15 @@
         markers = [];
     }
 
-    // 결과 리스트와 지도 마커 표시 함수
+    // 리스트 및 마커 렌더링
     function displayPlaces(places) {
         const listEl = document.getElementById('resultList');
-        listEl.innerHTML = ''; // 이전 결과 리스트 삭제
-        removeMarkers();       // 이전 검색 마커 삭제
+        listEl.innerHTML = '';
+        removeMarkers();
 
         const bounds = new kakao.maps.LatLngBounds();
 
-        // 맛집 전용 아이콘 설정 (강렬한 추적 느낌의 빨간색 카카오 마커)
+        // 세련된 레드 마커 이미지 리소스
         const imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png';
         const imageSize = new kakao.maps.Size(31, 35); 
         const markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
@@ -372,7 +341,6 @@
         for (let i = 0; i < places.length; i++) {
             const placePosition = new kakao.maps.LatLng(places[i].y, places[i].x);
             
-            // 맛집 아이콘을 적용하여 마커 생성
             const marker = new kakao.maps.Marker({
                 position: placePosition,
                 image: markerImage,
@@ -382,28 +350,24 @@
             markers.push(marker);
             bounds.extend(placePosition);
 
-            // 사이드바에 띄울 리스트 아이템 엘리먼트 생성
+            // 아이템 엘리먼트 생성
             const itemEl = document.createElement('div');
             itemEl.className = 'place_item';
             itemEl.innerHTML = '<div class="place_title">' + places[i].place_name + '</div><div class="place_addr">' + places[i].address_name + '</div>';
             
-            // 이벤트 바인딩을 위한 즉시실행함수 처리 (클로저)
+            // 이벤트 바인딩
             (function(m, p, pos) {
-                // 인포윈도우도 배트맨 무드에 맞게 커스텀 HTML 주입
-                const infoContent = '<div class="bat_info_window">' + p.place_name + '</div>';
+                const infoContent = '<div class="custom_info_window">' + p.place_name + '</div>';
                 
-                // 마커 마우스 오버 이벤트
                 kakao.maps.event.addListener(m, 'mouseover', function() {
                     infowindow.setContent(infoContent);
                     infowindow.open(map, m);
                 });
 
-                // 마커 마우스 아웃 이벤트
                 kakao.maps.event.addListener(m, 'mouseout', function() {
                     infowindow.close();
                 });
 
-                // 리스트 아이템 클릭 시 지도 이동 및 인포윈도우 활성화
                 itemEl.onclick = function() {
                     map.panTo(pos);
                     infowindow.setContent(infoContent);
@@ -414,7 +378,6 @@
             listEl.appendChild(itemEl);
         }
 
-        // 검색된 모든 장소들이 한눈에 보이도록 지도 범위 재조정
         map.setBounds(bounds);
     }
 </script>
